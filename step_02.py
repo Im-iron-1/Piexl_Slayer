@@ -13,29 +13,33 @@ FPS = 60
 
 class Player:
     def __init__(self):
-        self.rect = pygame.Rect(screen_width/2-35,screen_height/2-35,70,70)
-        self.speed = 6
+        self.rect = pygame.Rect(screen_width/2-35,screen_height/2-35,35,35)
+        self.speed = 10
     def move(self,keys):
         if keys[pygame.K_LEFT]:
-            self.rect.x -= self.speed
+            if self.rect.x > self.speed:
+                self.rect.x -= self.speed
         if keys[pygame.K_RIGHT]:
-            self.rect.x += self.speed
+            if self.rect.x < screen_width - self.speed - self.rect.width:
+                self.rect.x += self.speed
         if keys[pygame.K_UP]:
-            self.rect.y -= self.speed
+            if self.rect.y > self.speed:
+                self.rect.y -= self.speed
         if keys[pygame.K_DOWN]:
-            self.rect.y += self.speed
+            if self.rect.y < screen_height - self.speed - self.rect.height:
+                self.rect.y += self.speed
     def draw(self):
-        pygame.draw.rect(screen,(0,0,255),self.rect)
+        pygame.draw.rect(screen,(0,255,255),self.rect)
 
 def main():
     running = True
     player = Player()
     while running:
         clock.tick(FPS)
-        screen.fill((255,255,255))
+        screen.fill((0,0,0))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                running = False       
         keys = pygame.key.get_pressed()
         player.move(keys)
         player.draw()
