@@ -14,7 +14,7 @@ FPS = 60
 class Player:
     def __init__(self):
         self.rect = pygame.Rect(screen_width/2-35,screen_height/2-35,35,35)
-        self.speed = 10
+        self.speed = 15
     def move(self,keys):
         if keys[pygame.K_LEFT]:
             if self.rect.x > self.speed:
