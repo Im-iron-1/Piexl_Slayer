@@ -87,7 +87,7 @@ def main():
     enemies = [Enemy() for i in range(6)]
     
     enemy_spawn_timer = 0
-    enemy_spawn_interval = 60
+    enemy_spawn_interval = 100
     
     while running:
         clock.tick(FPS)
