@@ -21,6 +21,11 @@ SHIELD_DROP_RATE = 0.1
 SHIELD_DURATION = 10 * FPS
 SHIELD_SIZE = 15
 SHIELD_COLOR = (255,255,0)
+HASTE_DROP_RATE = 0.2
+HASTE_DURATION = 5 * FPS
+HASTE_SIZE = 20
+HASTE_COLOR = (255, 255, 255)
+MAX_HASTE = 3
 
 class Player:
     def __init__(self):
@@ -69,6 +74,10 @@ class Player:
     def shield(self):
         self.shield_duration = 300
         self.using_shield = True
+        
+    def haste(self):
+        self.haste_time = 10 * FPS
+        self.attack_cooldown_max = self.attack_cooldown_base * 1/3
             
     def update(self):
         if self.attacking:
@@ -139,6 +148,20 @@ class SHIELD:
     
     def draw(self):
         pygame.draw.rect(screen,SHIELD_COLOR,self.rect)
+
+class Haste:
+    def __init__(self,x,y):
+        self.rect = pygame.Rect(x,y,20,20)
+        self.duration = 5 * FPS
+
+    def update(self):
+        self.duration -= 1
+
+    def is_expired(self):
+        return self.duration <= 0
+    
+    def draw(self):
+        pygame.draw.rect(screen,(255, 255, 255),self.rect)
       
 def main():
     running = True
@@ -146,6 +169,7 @@ def main():
     enemies = [Enemy() for i in range(6)]
     heals = []
     shields = []
+    hastes = []
     
     enemy_spawn_timer = 0
     enemy_spawn_interval = 70
@@ -168,6 +192,9 @@ def main():
                 if r>1-SHIELD_DROP_RATE:
                     shields.append(SHIELD(e.rect.centerx - SHIELD_SIZE//2,
                                           e.rect.centery - SHIELD_SIZE//2))
+                if r >= HEAL_DROP_RATE and r < HEAL_DROP_RATE + HASTE_DROP_RATE:
+                    hastes.append(Haste(e.rect.centerx - HASTE_SIZE // 2,
+                                       e.rect.centery - HEAL_SIZE // 2))
         enemy_spawn_timer += 1
         if enemy_spawn_timer >= enemy_spawn_interval:
             enemies.append(Enemy())
@@ -197,6 +224,14 @@ def main():
                 player.shield()
                 shields.remove(s)
                 
+        for hs in hastes[:]:
+            hs.update()
+            if hs.is_expired():
+                hastes.remove(hs)
+            elif player.rect.colliderect(hs.rect):
+                player.haste()
+                hastes.remove(hs)
+                
         player.update()
         player.draw()
         
@@ -208,6 +243,9 @@ def main():
             
         for shield in shields:
             shield.draw()
+        
+        for hs in hastes:
+            hs.draw()
         
         
         if player.lives <= 0:
