@@ -17,6 +17,10 @@ HEAL_DURATION = 10 * FPS
 HEAL_SIZE = 20
 HEAL_COLOR = (50,255,50)
 MAX_LIVES = 5
+SHIELD_DROP_RATE = 0.1
+SHIELD_DURATION = 10 * FPS
+SHIELD_SIZE = 15
+SHIELD_COLOR = (255,255,0)
 
 class Player:
     def __init__(self):
@@ -27,6 +31,8 @@ class Player:
         self.attacking = False
         self.attack_timer = 0
         self.attack_cooldown = 0
+        self.shield_duration = 0
+        self.using_shield = False
     def move(self,keys):
         if keys[pygame.K_LEFT]:
             if self.rect.x > self.speed:
@@ -59,6 +65,10 @@ class Player:
     
     def heal(self):
         self.lives = min(self.lives + 1,MAX_LIVES)
+        
+    def shield(self):
+        self.shield_duration = 300
+        self.using_shield = True
             
     def update(self):
         if self.attacking:
@@ -67,9 +77,17 @@ class Player:
                 self.attacking = False
         if self.attack_cooldown > 0:
             self.attack_cooldown -= 1
+        if self.using_shield:
+            self.shield_duration -= 1
+            if self.shield_duration <= 0:
+                self.using_shield = False
+                
              
     def draw(self):
-        pygame.draw.rect(screen,(0,255,255),self.rect)
+        if self.using_shield:
+            pygame.draw.rect(screen,SHIELD_COLOR,self.rect)
+        else:
+            pygame.draw.rect(screen,(0,255,255),self.rect)
         if self.attacking:
             pygame.draw.rect(screen,(255,100,100),self.attack_range,2)
         else:
@@ -107,15 +125,30 @@ class HEAL:
     
     def draw(self):
         pygame.draw.rect(screen,HEAL_COLOR,self.rect)
+        
+class SHIELD:
+    def __init__(self,x,y):
+        self.rect = pygame.Rect(x,y,15,15)
+        self.duration = 10 * FPS
+    
+    def update(self):
+        self.duration -= 1
+        
+    def is_expired(self):
+        return self.duration <= 0
+    
+    def draw(self):
+        pygame.draw.rect(screen,SHIELD_COLOR,self.rect)
       
 def main():
     running = True
     player = Player()
     enemies = [Enemy() for i in range(6)]
     heals = []
+    shields = []
     
     enemy_spawn_timer = 0
-    enemy_spawn_interval = 100
+    enemy_spawn_interval = 70
     
     while running:
         clock.tick(FPS)
@@ -128,9 +161,13 @@ def main():
         if keys[pygame.K_SPACE]:
             killed = player.attack(enemies)
             for e in killed:
-                if random.random()<HEAL_DROP_RATE:
+                r = random.random()
+                if r<HEAL_DROP_RATE:
                     heals.append(HEAL(e.rect.centerx - HEAL_SIZE//2,
                                       e.rect.centery - HEAL_SIZE//2))
+                if r>1-SHIELD_DROP_RATE:
+                    shields.append(SHIELD(e.rect.centerx - SHIELD_SIZE//2,
+                                          e.rect.centery - SHIELD_SIZE//2))
         enemy_spawn_timer += 1
         if enemy_spawn_timer >= enemy_spawn_interval:
             enemies.append(Enemy())
@@ -140,8 +177,9 @@ def main():
             i.move_towards(player)
         for enemy in enemies[:]:
             if player.rect.colliderect(enemy.rect):
-                player.lives -=1
-                enemies.remove(enemy)
+                if player.shield_duration <= 0:
+                    player.lives -=1
+                    enemies.remove(enemy)
                 
         for h in heals[:]:
             h.update()
@@ -150,12 +188,26 @@ def main():
             elif player.rect.colliderect(h.rect):
                 player.heal()
                 heals.remove(h)
+        
+        for s in shields[:]:
+            s.update()
+            if s.is_expired():
+                shields.remove(h)
+            elif player.rect.colliderect(s.rect):
+                player.shield()
+                shields.remove(s)
                 
         player.update()
         player.draw()
         
         for e in enemies:
             e.draw()
+        
+        for heal in heals:
+            heal.draw()
+            
+        for shield in shields:
+            shield.draw()
         
         
         if player.lives <= 0:
