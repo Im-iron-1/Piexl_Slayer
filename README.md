@@ -16,7 +16,8 @@
 #### 게임이 시작되면 사방에서 적들이 생성되어 플레이어를 추격합니다.
 * 플레이어는 적들의 충돌 데미지를 피해 살아남아야 합니다.
 
-<img width="672" height="624" alt="Image" src="https://github.com/user-attachments/assets/39f5c092-bbeb-4e80-adcb-a1931842462d" />
+<img width="694" height="688" alt="image" src="https://github.com/user-attachments/assets/c86787ca-d286-49af-8aa8-05f4582fc169" />
+
 
 ---
 
