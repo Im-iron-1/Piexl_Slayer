@@ -9,8 +9,33 @@ screen_height = 700
 
 screen = pygame.display.set_mode((screen_width,screen_height))
 
+player_image = pygame.image.load("assets/player.png").convert_alpha()
+player_image = pygame.transform.scale(player_image, (30,30))
+lives_image = pygame.image.load("assets/heart.png").convert_alpha()
+lives_image = pygame.transform.scale(lives_image,(20,20))
+heal_image = pygame.image.load("assets/heal.png").convert_alpha()
+heal_image = pygame.transform.scale(heal_image,(20,20))
+haste_image = pygame.image.load("assets/haste.png").convert_alpha()
+haste_image = pygame.transform.scale(haste_image,(20,20))
+shield_image = pygame.image.load("assets/shield.png").convert_alpha()
+shield_image = pygame.transform.scale(shield_image,(20,20))
+enemy_image = pygame.image.load("assets/enemy.png").convert_alpha()
+enemy_image = pygame.transform.scale(enemy_image,(20,20))
+
 clock = pygame.time.Clock()
 FPS = 60
+
+BAR_X = 30
+BAR_Y = 60
+BAR_WIDTH = 200
+BAR_HEIGHT = 15
+BUFF_BAR_WIDTH = 120
+BUFF_BAR_HEIGHT = 10
+BAR_GAP = 8
+
+SCORE_PER_KILL = 10
+score_font = pygame.font.SysFont(None,30)
+game_over_font = pygame.font.SysFont(None,60)
 
 HEAL_DROP_RATE = 0.3
 HEAL_DURATION = 10 * FPS
@@ -20,24 +45,37 @@ MAX_LIVES = 5
 SHIELD_DROP_RATE = 0.1
 SHIELD_DURATION = 10 * FPS
 SHIELD_SIZE = 15
-SHIELD_COLOR = (255,255,0)
+SHIELD_COLOR = (255,100,100)
 HASTE_DROP_RATE = 0.2
-HASTE_DURATION = 5 * FPS
+HASTE_DURATION = 10 * FPS
 HASTE_SIZE = 20
-HASTE_COLOR = (255, 255, 255)
+HASTE_COLOR = (255, 255, 0)
 MAX_HASTE = 3
 
 class Player:
     def __init__(self):
-        self.rect = pygame.Rect(screen_width/2-30,screen_height/2-30,30,30)
+        self.rect = player_image.get_rect(topleft = (screen_width/2-30, screen_height/2-30))
         self.speed = 10
         self.lives = 3
-        self.attack_range = pygame.Rect(self.rect.x - 30, self.rect.y-30,100,100)
+        self.attack_range = pygame.Rect(self.rect.x-30,self.rect.y-30,100,100)
         self.attacking = False
         self.attack_timer = 0
         self.attack_cooldown = 0
-        self.shield_duration = 0
+        self.shield_timer = 0
         self.using_shield = False
+        self.attack_cooldown_base = 3 * FPS
+        self.attack_cooldown_max = self.attack_cooldown_base    
+        self.haste_timer = 0
+        
+    def draw_bar(self, x,y,width,height,ratio,color):
+        if ratio < 0:
+            ratio = 0
+        elif ratio > 1:
+            ratio = 1
+        pygame.draw.rect(screen,(60,60,60),(x,y,width,height))
+        pygame.draw.rect(screen,color,(x,y,width*ratio,height))
+        pygame.draw.rect(screen,(255,255,255),(x,y,width,height),2)
+    
     def move(self,keys):
         if keys[pygame.K_LEFT]:
             if self.rect.x > self.speed:
@@ -58,7 +96,7 @@ class Player:
         if not self.attacking and self.attack_cooldown <= 0:
             self.attacking = True
             self.attack_timer = 15
-            self.attack_cooldown = 60
+            self.attack_cooldown = self.attack_cooldown_max
             new_enemies = []
             for e in enemies:
                 if self.attack_range.colliderect(e.rect):
@@ -72,11 +110,11 @@ class Player:
         self.lives = min(self.lives + 1,MAX_LIVES)
         
     def shield(self):
-        self.shield_duration = 300
+        self.shield_timer = SHIELD_DURATION
         self.using_shield = True
         
     def haste(self):
-        self.haste_time = 10 * FPS
+        self.haste_timer = HASTE_DURATION
         self.attack_cooldown_max = self.attack_cooldown_base * 1/3
             
     def update(self):
@@ -86,23 +124,47 @@ class Player:
                 self.attacking = False
         if self.attack_cooldown > 0:
             self.attack_cooldown -= 1
+        if self.haste_timer > 0:
+            self.haste_timer -= 1
+            if self.haste_timer <= 0:
+                self.attack_cooldown_max = self.attack_cooldown_base
         if self.using_shield:
-            self.shield_duration -= 1
-            if self.shield_duration <= 0:
+            self.shield_timer -= 1
+            if self.shield_timer <= 0:
                 self.using_shield = False
                 
              
     def draw(self):
-        if self.using_shield:
-            pygame.draw.rect(screen,SHIELD_COLOR,self.rect)
-        else:
-            pygame.draw.rect(screen,(0,255,255),self.rect)
+        screen.blit(player_image,self.rect)
+        #if self.using_shield:
+        #    pygame.draw.rect(screen,SHIELD_COLOR,self.rect)
+        #else:
+        #    pygame.draw.rect(screen,(0,255,255),self.rect)
         if self.attacking:
             pygame.draw.rect(screen,(255,100,100),self.attack_range,2)
         else:
             pygame.draw.rect(screen,(255,255,255),self.attack_range,1)
+            
+    def draw_hud(self):
         for n in range(self.lives):
-            pygame.draw.rect(screen,(255,0,0),(30+30*n,30,20,20))
+            heart = lives_image.get_rect(topleft = (30+30*n,30))
+            screen.blit(lives_image,heart)
+            
+        if self.attack_cooldown <= 0:
+            color = (0,255,0)
+        elif self.haste_timer > 0:
+            color = (255,255,0)
+        else:
+            color = (255,150,0)
+        ratio = 1 - self.attack_cooldown / self.attack_cooldown_max
+        self.draw_bar(BAR_X,BAR_Y,BAR_WIDTH,BAR_HEIGHT,ratio,color)
+        
+        y = BAR_Y + BAR_HEIGHT + BAR_GAP
+        if self.haste_timer > 0:
+            self.draw_bar(BAR_X,y,BUFF_BAR_WIDTH,BUFF_BAR_HEIGHT,self.haste_timer/HASTE_DURATION,(255,255,0))
+            y += BUFF_BAR_HEIGHT + BAR_GAP
+        if self.shield_timer > 0:
+            self.draw_bar(BAR_X,y,BUFF_BAR_WIDTH,BUFF_BAR_HEIGHT,self.shield_timer/SHIELD_DURATION,(100,200,255))
         
         
 class Enemy:
@@ -119,7 +181,7 @@ class Enemy:
         elif self.rect.y > target.rect.y:
             self.rect.y -= self.speed
     def draw(self):
-        pygame.draw.rect(screen,(255,0,0),self.rect)
+        screen.blit(enemy_image,self.rect)
         
 class HEAL:
     def __init__(self,x,y):
@@ -133,7 +195,7 @@ class HEAL:
         return self.duration <= 0
     
     def draw(self):
-        pygame.draw.rect(screen,HEAL_COLOR,self.rect)
+        screen.blit(heal_image,self.rect)
         
 class SHIELD:
     def __init__(self,x,y):
@@ -147,7 +209,7 @@ class SHIELD:
         return self.duration <= 0
     
     def draw(self):
-        pygame.draw.rect(screen,SHIELD_COLOR,self.rect)
+        screen.blit(shield_image,self.rect)
 
 class Haste:
     def __init__(self,x,y):
@@ -161,7 +223,12 @@ class Haste:
         return self.duration <= 0
     
     def draw(self):
-        pygame.draw.rect(screen,(255, 255, 255),self.rect)
+        screen.blit(haste_image,self.rect)
+
+def draw_score(score):
+    text = score_font.render("SCORE : "+str(score),True,(255,255,255))
+    screen.blit(text,(screen_width - text.get_width()-30,30))
+    
       
 def main():
     running = True
@@ -170,6 +237,7 @@ def main():
     heals = []
     shields = []
     hastes = []
+    score = 0
     
     enemy_spawn_timer = 0
     enemy_spawn_interval = 70
@@ -195,6 +263,7 @@ def main():
                 if r >= HEAL_DROP_RATE and r < HEAL_DROP_RATE + HASTE_DROP_RATE:
                     hastes.append(Haste(e.rect.centerx - HASTE_SIZE // 2,
                                        e.rect.centery - HEAL_SIZE // 2))
+                score += SCORE_PER_KILL
         enemy_spawn_timer += 1
         if enemy_spawn_timer >= enemy_spawn_interval:
             enemies.append(Enemy())
@@ -204,7 +273,7 @@ def main():
             i.move_towards(player)
         for enemy in enemies[:]:
             if player.rect.colliderect(enemy.rect):
-                if player.shield_duration <= 0:
+                if player.shield_timer <= 0:
                     player.lives -=1
                     enemies.remove(enemy)
                 
@@ -219,7 +288,7 @@ def main():
         for s in shields[:]:
             s.update()
             if s.is_expired():
-                shields.remove(h)
+                shields.remove(s)
             elif player.rect.colliderect(s.rect):
                 player.shield()
                 shields.remove(s)
@@ -234,6 +303,7 @@ def main():
                 
         player.update()
         player.draw()
+        player.draw_hud()
         
         for e in enemies:
             e.draw()
@@ -247,6 +317,8 @@ def main():
         for hs in hastes:
             hs.draw()
         
+        score += 0.05
+        draw_score(int(score))
         
         if player.lives <= 0:
             print("Game Over")
@@ -259,3 +331,5 @@ def main():
     
 if __name__ == "__main__":
     main()
+    
+    
