@@ -10,17 +10,20 @@ screen_height = 700
 screen = pygame.display.set_mode((screen_width,screen_height))
 
 player_image = pygame.image.load("assets/player.png").convert_alpha()
-player_image = pygame.transform.scale(player_image, (30,30))
+player_image = pygame.transform.scale(player_image, (60,60))
 lives_image = pygame.image.load("assets/heart.png").convert_alpha()
 lives_image = pygame.transform.scale(lives_image,(20,20))
 heal_image = pygame.image.load("assets/heal.png").convert_alpha()
-heal_image = pygame.transform.scale(heal_image,(20,20))
+heal_image = pygame.transform.scale(heal_image,(40,40))
 haste_image = pygame.image.load("assets/haste.png").convert_alpha()
-haste_image = pygame.transform.scale(haste_image,(20,20))
+haste_image = pygame.transform.scale(haste_image,(40,40))
 shield_image = pygame.image.load("assets/shield.png").convert_alpha()
-shield_image = pygame.transform.scale(shield_image,(20,20))
+shield_image = pygame.transform.scale(shield_image,(40,40))
 enemy_image = pygame.image.load("assets/enemy.png").convert_alpha()
-enemy_image = pygame.transform.scale(enemy_image,(20,20))
+enemy_image = pygame.transform.scale(enemy_image,(30,30))
+
+pygame.mixer.music.load("assets/bgm.mp3")
+pygame.mixer.music.play(-1)
 
 clock = pygame.time.Clock()
 FPS = 60
@@ -41,7 +44,7 @@ HEAL_DROP_RATE = 0.3
 HEAL_DURATION = 10 * FPS
 HEAL_SIZE = 20
 HEAL_COLOR = (50,255,50)
-MAX_LIVES = 5
+MAX_LIVES = 15
 SHIELD_DROP_RATE = 0.1
 SHIELD_DURATION = 10 * FPS
 SHIELD_SIZE = 15
@@ -54,10 +57,10 @@ MAX_HASTE = 3
 
 class Player:
     def __init__(self):
-        self.rect = player_image.get_rect(topleft = (screen_width/2-30, screen_height/2-30))
+        self.rect = player_image.get_rect(topleft = (screen_width/2-60, screen_height/2-60))
         self.speed = 10
         self.lives = 3
-        self.attack_range = pygame.Rect(self.rect.x-30,self.rect.y-30,100,100)
+        self.attack_range = pygame.Rect(self.rect.x-60,self.rect.y-60,120,120)
         self.attacking = False
         self.attack_timer = 0
         self.attack_cooldown = 0
