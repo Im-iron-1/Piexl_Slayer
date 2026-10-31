@@ -21,6 +21,9 @@ shield_image = pygame.image.load("assets/shield.png").convert_alpha()
 shield_image = pygame.transform.scale(shield_image,(40,40))
 enemy_image = pygame.image.load("assets/enemy.png").convert_alpha()
 enemy_image = pygame.transform.scale(enemy_image,(30,30))
+waiting_image = pygame.image.load("assets/Pixel_Slayer.png").convert_alpha()
+waiting_image = pygame.transform.scale(waiting_image,(700,700))
+waiting_image_rect = pygame.Rect(0,0,700,700)
 
 pygame.mixer.music.load("assets/bgm.mp3")
 pygame.mixer.music.play(-1)
@@ -44,9 +47,9 @@ HEAL_DROP_RATE = 0.3
 HEAL_DURATION = 10 * FPS
 HEAL_SIZE = 20
 HEAL_COLOR = (50,255,50)
-MAX_LIVES = 15
+MAX_LIVES = 5
 SHIELD_DROP_RATE = 0.1
-SHIELD_DURATION = 10 * FPS
+SHIELD_DURATION = 5 * FPS
 SHIELD_SIZE = 15
 SHIELD_COLOR = (255,100,100)
 HASTE_DROP_RATE = 0.2
@@ -232,102 +235,120 @@ def draw_score(score):
     text = score_font.render("SCORE : "+str(score),True,(255,255,255))
     screen.blit(text,(screen_width - text.get_width()-30,30))
     
-      
-def main():
-    running = True
+def init_game():
     player = Player()
     enemies = [Enemy() for i in range(6)]
     heals = []
     shields = []
     hastes = []
     score = 0
-    
     enemy_spawn_timer = 0
     enemy_spawn_interval = 70
+    return player, enemies,heals,shields,hastes,score,enemy_spawn_timer,enemy_spawn_interval
+      
+      
+def main():
+    running = True
+    state = "WAITING" # PLAYING / WAITING
+    
+    player, enemies,heals,shields,hastes,score,enemy_spawn_timer,enemy_spawn_interval = init_game()
     
     while running:
         clock.tick(FPS)
-        screen.fill((0,0,0))
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False       
-        keys = pygame.key.get_pressed()
-        player.move(keys)
-        if keys[pygame.K_SPACE]:
-            killed = player.attack(enemies)
-            for e in killed:
-                r = random.random()
-                if r<HEAL_DROP_RATE:
-                    heals.append(HEAL(e.rect.centerx - HEAL_SIZE//2,
-                                      e.rect.centery - HEAL_SIZE//2))
-                if r>1-SHIELD_DROP_RATE:
-                    shields.append(SHIELD(e.rect.centerx - SHIELD_SIZE//2,
-                                          e.rect.centery - SHIELD_SIZE//2))
-                if r >= HEAL_DROP_RATE and r < HEAL_DROP_RATE + HASTE_DROP_RATE:
-                    hastes.append(Haste(e.rect.centerx - HASTE_SIZE // 2,
-                                       e.rect.centery - HEAL_SIZE // 2))
-                score += SCORE_PER_KILL
-        enemy_spawn_timer += 1
-        if enemy_spawn_timer >= enemy_spawn_interval:
-            enemies.append(Enemy())
-            enemy_spawn_timer = 0
-            
-        for i in enemies:
-            i.move_towards(player)
-        for enemy in enemies[:]:
-            if player.rect.colliderect(enemy.rect):
-                if player.shield_timer <= 0:
-                    player.lives -=1
-                    enemies.remove(enemy)
+        if state == "WAITING":
+            print("WAITING")
+            #대기
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False    
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        player, enemies,heals,shields,hastes,score,enemy_spawn_timer,enemy_spawn_interval = init_game()
+                        state = "PLAYING"
+                screen.blit(waiting_image,waiting_image_rect)
+        else: # PLAYING
+            print("PLAYING")
+            screen.fill((0,0,0))
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False       
+            keys = pygame.key.get_pressed()
+            player.move(keys)
+            if keys[pygame.K_SPACE]:
+                killed = player.attack(enemies)
+                for e in killed:
+                    r = random.random()
+                    if r<HEAL_DROP_RATE:
+                        heals.append(HEAL(e.rect.centerx - HEAL_SIZE//2,
+                                        e.rect.centery - HEAL_SIZE//2))
+                    if r>1-SHIELD_DROP_RATE:
+                        shields.append(SHIELD(e.rect.centerx - SHIELD_SIZE//2,
+                                            e.rect.centery - SHIELD_SIZE//2))
+                    if r >= HEAL_DROP_RATE and r < HEAL_DROP_RATE + HASTE_DROP_RATE:
+                        hastes.append(Haste(e.rect.centerx - HASTE_SIZE // 2,
+                                        e.rect.centery - HEAL_SIZE // 2))
+                    score += SCORE_PER_KILL
+            enemy_spawn_timer += 1
+            if enemy_spawn_timer >= enemy_spawn_interval:
+                enemies.append(Enemy())
+                enemy_spawn_timer = 0
                 
-        for h in heals[:]:
-            h.update()
-            if h.is_expired():
-                heals.remove(h)
-            elif player.rect.colliderect(h.rect):
-                player.heal()
-                heals.remove(h)
-        
-        for s in shields[:]:
-            s.update()
-            if s.is_expired():
-                shields.remove(s)
-            elif player.rect.colliderect(s.rect):
-                player.shield()
-                shields.remove(s)
-                
-        for hs in hastes[:]:
-            hs.update()
-            if hs.is_expired():
-                hastes.remove(hs)
-            elif player.rect.colliderect(hs.rect):
-                player.haste()
-                hastes.remove(hs)
-                
-        player.update()
-        player.draw()
-        player.draw_hud()
-        
-        for e in enemies:
-            e.draw()
-        
-        for heal in heals:
-            heal.draw()
+            for i in enemies:
+                i.move_towards(player)
+            for enemy in enemies[:]:
+                if player.rect.colliderect(enemy.rect):
+                    if player.shield_timer <= 0:
+                        player.lives -=1
+                        enemies.remove(enemy)
+                    
+            for h in heals[:]:
+                h.update()
+                if h.is_expired():
+                    heals.remove(h)
+                elif player.rect.colliderect(h.rect):
+                    player.heal()
+                    heals.remove(h)
             
-        for shield in shields:
-            shield.draw()
-        
-        for hs in hastes:
-            hs.draw()
-        
-        score += 0.05
-        draw_score(int(score))
-        
-        if player.lives <= 0:
-            print("Game Over")
-            pygame.time.delay(2000)
-            running = False
+            for s in shields[:]:
+                s.update()
+                if s.is_expired():
+                    shields.remove(s)
+                elif player.rect.colliderect(s.rect):
+                    player.shield()
+                    shields.remove(s)
+                    
+            for hs in hastes[:]:
+                hs.update()
+                if hs.is_expired():
+                    hastes.remove(hs)
+                elif player.rect.colliderect(hs.rect):
+                    player.haste()
+                    hastes.remove(hs)
+                    
+            player.update()
+            player.draw()
+            player.draw_hud()
             
+            for e in enemies:
+                e.draw()
+            
+            for heal in heals:
+                heal.draw()
+                
+            for shield in shields:
+                shield.draw()
+            
+            for hs in hastes:
+                hs.draw()
+            
+            score += 0.05
+            draw_score(int(score))
+            
+            if player.lives <= 0:
+                print("Game Over")
+                pygame.time.delay(500)
+                state = "WAITING"
+                
         pygame.display.update()
         
     pygame.quit()
